@@ -1,0 +1,1 @@
+cmd /k "pyinstaller bandonautica.spec"
