@@ -1,13 +1,14 @@
 # Bandonautica
-Simply put it's a true random radio using the whole bandcamp site as a database.
-Born out of the necessity of escaping the Newtonian music bubble!
+Simply put Bandonautica it's a true random radio using the whole bandcamp site as a database.
+It is heavily inspired by the Randonauts movement.
+Escape your Newtonian music bubble!
 
 It also comes with a handy album downloader, auto tagging and scrobbling features.
 
 ![](https://raw.githubusercontent.com/bembidiona/bandonautica/master/src/screenshot.png)
 
 ## HOW TO RUN
-* For Windows 10 just download the zip file from the Releases page, extract, and run bandonautica.exe
+* For Windows 10 just download the [zip file](https://github.com/bembidiona/bandonautica/releases/download/v1.0.0/bandonautica.zip "Download Bandonautica for Windows") from the Releases page, extract, and run bandonautica.exe
 * Or build from sourse using Pyinstaller and runing build.bat
 * In other OS you can run it directly from the script bandonautica.py. check the external libraries required in requirements.txt
 
