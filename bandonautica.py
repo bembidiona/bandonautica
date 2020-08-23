@@ -565,7 +565,7 @@ sg.ChangeLookAndFeel('Topanga_Dark')
 
 # --------------------------------------
 #OPTIONS
-toggle_quantum = False
+toggle_quantum = True
 toggle_scrobble = False
 toggle_autoplay = True
 LASTFM_USERNAME = ""
@@ -613,7 +613,7 @@ LASTFM_USERNAME=your_lastfm_username
 LASTFM_PASSWORD=your_lastfm_password
 SCROLL_TIME=10
 ENABLE_AUTOPLAY=1
-ENABLE_QUANTUM=0
+ENABLE_QUANTUM=1
 PATH_DOWNLOADS=
 PATH_CHROMEDRIVE="""
     with open("config.ini", 'w', encoding='utf-8') as config:
