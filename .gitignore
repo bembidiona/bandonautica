@@ -1,0 +1,7 @@
+__pycache__/
+build/
+dist/
+track.mp3
+cover.png
+config.ini
+log.txt
