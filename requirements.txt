@@ -5,5 +5,5 @@ pygame==1.9.6
 PyInstaller==3.6
 pylast==3.3.0
 Pillow==7.1.2
-mp3-tagger==1.0
+mutagen==1.45.1
 selenium==3.141.0

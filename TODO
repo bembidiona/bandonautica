@@ -1,0 +1,28 @@
+BUGS:
+    - hay un crash raro al cerrar el .exe despues de usarlo un buen rato
+    - exploto con https://noospherenetwork.bandcamp.com/
+        albumart = soup.findAll('div', attrs={'id': 'tralbumArt'})[0]
+        IndexError: list index out of range
+    - hay albunes sin ninguna cancion reproducible!
+        - en teoria lo estoy catcheando. Pero no tengo link para testear!
+    - only one track retrived, from a multitrack release: 
+        - Esto sigue pasando?
+        - salvaguardar el caso que si el artistpage solo tiene un track en su main page, no deberia saltar error
+    - algun check mas copado para cuando te quedas sin inet?
+TODO:
+    - updater el screenshot que se muestra en github con el downloader
+    - estaria piola poder empaquetar el exe sin tanta cosa suelta... pero habia problema
+        - toca probar pyinstaller con python37
+    - taria cute que vaya avanzando la barrita mientras se reproduce, y ponerle el tiempo que dura
+    - tal vez que arranque a bajar el nuevo tema antes de que termine? (pero congelaria un toque la gui)
+    - tal vez usar treads asi no se conguela la gui mientras hace los requests
+    - Hacer un solo request a random generator y gaurdar una lista enorme?
+    - save window location from session to session
+    - transparent_color=sg.theme_background_color()
+        the buttons only works if there are no titlebar...
+        but if there are no title bar there are no icon on the taskbar 
+    - hacer warp around del title si es muy largo
+    - Audio, Pygame y demases:
+        - hasta que nos salga la version 2 no se puede hacer unload() de los mp3 que cargas, da que hace un miiini memory leak... ademas se podria tirar el dummy.mp3
+    - poner el menu como click derecho tambien
+        - de momento no se puede updatear el menu en esta version de pysimple gui, asi que no sirve

@@ -7,40 +7,7 @@
 (_/ (     (_/      (_/   '    (_/___ / (___ /  (_/   '    (_/       (___(_   (_/   (__ /     (______) (_/        
                                                                                                                  
 -----------------------------------------------------------------------------------------------------------------
-BUGS:
-    - hay un crash raro al cerrar el .exe despues de usarlo un buen rato
-    - exploto con https://noospherenetwork.bandcamp.com/
-        albumart = soup.findAll('div', attrs={'id': 'tralbumArt'})[0]
-        IndexError: list index out of range
-    - hay albunes sin ninguna cancion reproducible!
-        - en teoria lo estoy catcheando. Pero no tengo link para testear!
-    - only one track retrived, from a multitrack release: 
-        - Esto sigue pasando?
-        - salvaguardar el caso que si el artistpage solo tiene un track en su main page, no deberia saltar error
-    - algun check mas copado para cuando te quedas sin inet?
-TODO:
-    - hacer scrobbling bien de song que estan firmadas como various artits
-        - los tags si lo bajas
-        ejemplos:
-        https://rottencityrecords.bandcamp.com/album/rotten-citizens-vol-4
-        https://elaste.bandcamp.com/album/elaste-volume-3
-    - estaria piola poder empaquetar el exe sin tanta cosa suelta... pero habia problema
-        - toca probar pyinstaller con python37
-    - taria cute que vaya avanzando la barrita mientras se reproduce, y ponerle el tiempo que dura
-    - tal vez que arranque a bajar el nuevo tema antes de que termine? (pero congelaria un toque la gui)
-    - tal vez usar treads asi no se conguela la gui mientras hace los requests
-    - Hacer un solo request a random generator y gaurdar una lista enorme?
-    - save window location from session to session
-    - transparent_color=sg.theme_background_color()
-        the buttons only works if there are no titlebar...
-        but if there are no title bar there are no icon on the taskbar 
-    - hacer warp around del title si es muy largo
-    - Audio, Pygame y demases:
-        - hasta que nos salga la version 2 no se puede hacer unload() de los mp3 que cargas, da que hace un miiini memory leak... ademas se podria tirar el dummy.mp3
-    - poner el menu como click derecho tambien
-        - de momento no se puede updatear el menu en esta version de pysimple gui, asi que no sirve
 '''
-#-----------------------------------------
 import random
 import re  # for making sense of the javascript on the bandcamp pages
 import datetime  # for scrobbling (gets timestamp)
@@ -55,8 +22,9 @@ from bs4 import BeautifulSoup #for scrapping
 from pygame import mixer  # for playing mp3s, sigh...
 import pylast  # for scrobbling
 from PIL import Image  # for saving and displaying covers
-from mp3_tagger import MP3File, VERSION_BOTH #for tagging downloaded mp3
 from selenium import webdriver # for scrapping the tag pages
+import mutagen.id3 #for tagging downloaded mp3
+from mutagen.easyid3 import EasyID3
 #-----------------------------------------
 
 def print2log(text=""):
@@ -65,7 +33,9 @@ def print2log(text=""):
     debuglog += text + "\n"    
 
 def clean_string(text):
-    return re.sub(r'[\\~#%&*{}/:<>?|\"-]+', "'", text)
+    text = re.sub(r'[\\~#%&*{}/:<>?|\"-]+', "'", text)
+    text = text.replace("/", "")
+    return text
 
 def scrobble_track(artist, song):
     API_KEY = "75d60612ae46fa6aaf0bb3f3d3696ce0"
@@ -341,8 +311,8 @@ def retrieve_random_song(user_tag=""):
         script_as_string = str(script.string)
 
         tracks_info = re.findall(r"trackinfo:(.*?)\],", script_as_string)
-        if len(tracks_info) > 0:
-            tracks_info = tracks_info[0]  # grab the first. TODO: why not to use find() then?
+        if len(tracks_info) > 0: # safe check. Some scripts don't have trackinfo.
+            tracks_info = tracks_info[0]
 
             tracks_file = re.findall(r"\"file\":(.*?),", tracks_info)
             tracks_title = re.findall(r"\"title\":\"(.*?)\",", tracks_info)
@@ -386,6 +356,25 @@ def retrieve_random_song(user_tag=""):
             track_name = selected_track[1]
             track_duration = selected_track[2] # in seconds 
             track_mp3 = selected_track[3] 
+
+            # if is the release is a compilation, try to grab proper names
+            if artist_name.lower() in ["various artists", "various", "v/a", "v.a.", "va"]:
+                posible_separators = [" - ", " — "]
+                separator_found = False
+                for separator in posible_separators:                    
+                    if separator in track_name:
+                        split_name = track_name.split(separator, 1)
+                        if split_name[0] not in [None, "", " "]:
+                            artist_name = split_name[0]
+                        if split_name[1] not in [None, "", " "]:
+                            track_name = split_name[1]
+                        separator_found = True
+                        break
+                if not separator_found:
+                    #have in mind that are tracks that don;t have separator, even in a multi artists release
+                    # https://boguscollective.bandcamp.com/album/b-o-g-u-s-collective-volume-1
+                    print2log(f"REPORT THIS: '{track_name}' has no separator indentified!")
+
             print2log(f"DOWNLOADING: '{artist_name} - {track_name}.mp3'")
             log.update(f"Have patience...\nDownloading track...")
 
@@ -444,11 +433,18 @@ def download_albums(user_links="https://fatherjohnmisty.bandcamp.com/album/anthe
         artist_name = soup.find('meta', attrs={'name': 'title'})
         artist_name = artist_name.get("content")
         album_name, artist_name = artist_name.split(", by ")
+        is_a_multiartist_release = False
+        if artist_name.lower() in ["various artists", "various", "v/a", "v.a.", "va"]:
+            is_a_multiartist_release = True
+
         artist_name = clean_string(artist_name)
         album_name = clean_string(album_name)
         print2log(f"DOWNLOADING ALBUM: {album_name} by {artist_name}")
         log_download.update(f"DOWNLOADING ALBUM: {album_name} by {artist_name}\nhola")
         window.refresh()
+
+        
+
         #create folder
         ALBUM_PATH = os.path.join(DOWNLOADS_PATH, f"{artist_name} - {album_name}") 
         os.mkdir(ALBUM_PATH)
@@ -489,26 +485,49 @@ def download_albums(user_links="https://fatherjohnmisty.bandcamp.com/album/anthe
                     track_name = tracks_title[i]
                     print2log(f"DOWNLOADING TRACK {i+1} of {len(tracks_mp3)}")
 
-                    log_download.update(f"DOWNLOADING ALBUM: {album_name} by {artist_name}\nDownloaing track {i+1} of {len(tracks_mp3)}...")
+                    if is_a_multiartist_release:
+                        posible_separators = [" - ", " — "]
+                        separator_found = False
+                        for separator in posible_separators:                    
+                            if separator in track_name:
+                                split_name = track_name.split(separator, 1)
+                                if split_name[0] not in [None, "", " "]:
+                                    artist_name = split_name[0]
+                                if split_name[1] not in [None, "", " "]:
+                                    track_name = split_name[1]
+                                separator_found = True
+                                break
+                        if not separator_found:
+                            #have in mind that are tracks that don;t have separator, even in a multi artists release
+                            # https://boguscollective.bandcamp.com/album/b-o-g-u-s-collective-volume-1
+                            print2log(f"REPORT THIS: '{track_name}' has no separator indentified!")
+
+                    # These can come ugly, clean again, becouse these are going to ve used on the writing of the file .
+                    # the ungly ones, are keeped to be used on the file metatags
+                    artist_name_clean = clean_string(artist_name)
+                    track_name_clean = clean_string(track_name)
+                    
+                    log_download.update(f"DOWNLOADING ALBUM: {album_name}\nDownloaing track {i+1} of {len(tracks_mp3)}...")
                     window.refresh()
 
                     doc = requests.get(track_url)
-                    MP3_PATH = os.path.join(ALBUM_PATH, f"{artist_name} - {track_name}.mp3")
+                    # print2log(f"artist_name: {artist_name}\ntrack_name: {track_name}")
+                    MP3_PATH = os.path.join(ALBUM_PATH, f"{artist_name_clean} - {track_name_clean}.mp3")
                     
                     with open(MP3_PATH, 'wb') as file:
                         file.write(doc.content)
 
                     # tags mp3
-                    # for some reason need to open and save the file once, before being able to change the tags later
-                    mp3 = MP3File(MP3_PATH)
-                    mp3.save()
-                    mp3 = MP3File(MP3_PATH)
-                    mp3.set_version(VERSION_BOTH)
-                    mp3.album = album_name
-                    mp3.artist = artist_name
-                    mp3.track = str(i+1)
-                    mp3.song = track_name
-                    mp3.save()
+                    try:
+                        metatag = mutagen.easyid3.EasyID3(MP3_PATH)
+                    except mutagen.id3.ID3NoHeaderError:
+                        metatag = mutagen.File(MP3_PATH, easy=True)
+                        metatag.add_tags()
+                    metatag['title'] = track_name
+                    metatag['artist'] = artist_name
+                    metatag['album'] = album_name
+                    metatag['tracknumber'] = str(i+1)
+                    metatag.save()
                         
                 # WARNING: maybe this is bad idea if I am scrapping other things on scripts other that only tracks
                 # already found the script with the data, so break out of the loop
@@ -525,9 +544,9 @@ def generate_menu():
     key_scrobble = f'{on} Scrobble::-MENU_SCROBBLE-' if toggle_scrobble else f'{off} Scrobble::-MENU_SCROBBLE-'
     key_autoplay = f'{on} Autoplay::-MENU_AUTOPLAY-' if toggle_autoplay else f'{off} Autoplay::-MENU_AUTOPLAY-'
     temp_list = [
-                ['Modes', ['Bandonaut::-MENU_RANDOM-', 'Downloader::-MENU_DOWNLOADER-', 'Exit']],
-                ['Pref', [key_scrobble, key_autoplay, key_quantum, 'Open config.ini::-MENU_CONFIG-']],
-                ['Help', ['Open ReadMe::-MENU_HELP-', 'About::-MENU_ABOUT-']]
+                ['Modes', ['Bandonaut::-MENU_RANDOM-', 'Downloader::-MENU_DOWNLOADER-', '---','Exit']],
+                ['Pref', [key_scrobble, key_autoplay, key_quantum, '---','Open config.ini::-MENU_CONFIG-']],
+                ['Help', ['About::-MENU_ABOUT-', '---','Open ReadMe::-MENU_HELP-']]
                 ]      
     return temp_list
 
@@ -763,7 +782,7 @@ def main():
                     os.system("README.txt")
                 elif menu_entry_key == '-MENU_ABOUT-':
                     # button_type=5 removes the horrendous OK button
-                    sg.Popup('Bandonautica v0.1\nby bembi & lemu',button_type=5)
+                    sg.Popup('Bandonautica v1.01\nby bembi & lemu',button_type=5)
                 elif menu_entry_key == '-MENU_QUANTUM-':
                     toggle_quantum = not toggle_quantum
                     temp_menu = generate_menu()
@@ -798,12 +817,12 @@ def main():
 
 if __name__ == "__main__":
     try:
-        with open("log.txt", "w") as logfile:
+        with open("log.txt", "w", encoding='utf-8') as logfile:
             logfile.write("")
         main()
     except Exception as e:
         debuglog += str(e)
         print(e)
     finally:
-        with open("log.txt", "w") as logfile:
+        with open("log.txt", "w", encoding='utf-8') as logfile:
             logfile.write(debuglog)
