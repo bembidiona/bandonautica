@@ -8,6 +8,7 @@
                                                                                                                  
 -----------------------------------------------------------------------------------------------------------------
 BUGS:
+    - hay un crash raro al cerrar el .exe despues de usarlo un buen rato
     - exploto con https://noospherenetwork.bandcamp.com/
         albumart = soup.findAll('div', attrs={'id': 'tralbumArt'})[0]
         IndexError: list index out of range
@@ -18,8 +19,13 @@ BUGS:
         - salvaguardar el caso que si el artistpage solo tiene un track en su main page, no deberia saltar error
     - algun check mas copado para cuando te quedas sin inet?
 TODO:
-	- estaria piola poder empaquetar el exe sin tanta cosa suelta... pero habia problema
-		- toca probar pyinstaller con python37
+    - hacer scrobbling bien de song que estan firmadas como various artits
+        - los tags si lo bajas
+        ejemplos:
+        https://rottencityrecords.bandcamp.com/album/rotten-citizens-vol-4
+        https://elaste.bandcamp.com/album/elaste-volume-3
+    - estaria piola poder empaquetar el exe sin tanta cosa suelta... pero habia problema
+        - toca probar pyinstaller con python37
     - taria cute que vaya avanzando la barrita mientras se reproduce, y ponerle el tiempo que dura
     - tal vez que arranque a bajar el nuevo tema antes de que termine? (pero congelaria un toque la gui)
     - tal vez usar treads asi no se conguela la gui mientras hace los requests
@@ -29,8 +35,8 @@ TODO:
         the buttons only works if there are no titlebar...
         but if there are no title bar there are no icon on the taskbar 
     - hacer warp around del title si es muy largo
-	- Audio, Pygame y demases:
-	    - hasta que nos salga la version 2 no se puede hacer unload() de los mp3 que cargas, da que hace un miiini memory leak... ademas se podria tirar el dummy.mp3
+    - Audio, Pygame y demases:
+        - hasta que nos salga la version 2 no se puede hacer unload() de los mp3 que cargas, da que hace un miiini memory leak... ademas se podria tirar el dummy.mp3
     - poner el menu como click derecho tambien
         - de momento no se puede updatear el menu en esta version de pysimple gui, asi que no sirve
 '''
@@ -76,32 +82,37 @@ def update_bar(progress):
     progress_bar.UpdateBar(progress)
     window.refresh()  # hack para esquivar el 'Not Responding' de la GUI
 
-def generate_random_numbers(quantum=False): 
-    random_list = []
-    num_per_set = 4
-    min_num = 1
+def generate_random_numbers(quantum=False):
+    rep_num = 4 #the old 'numbers per set'
     max_num = 9999
+    random_list = []
     if quantum:
         print2log("retrieving random quantum numbers...") 
-        # generate from here
-        # http://qrng.anu.edu.au/Lucky.php
-        url = f"http://qrng.anu.edu.au/form_handler.php?numofsets=1&min_num={min_num}&max_num={max_num}&time=0&repeats=no&num_per_set={num_per_set}"
         try:
-        	page = requests.get(url)
-        	soup = BeautifulSoup(page.content, 'html.parser')
-	        numbers = soup.text
-	        numbers = numbers.split("Set 1:")[1]
-	        numbers = numbers.split(",")
-	        for i, number in enumerate(numbers):
-	            cleaned = number.replace("\n", "").replace(" ", "")
-	            numbers[i] = int(cleaned)
-	        random_list = numbers
+            form_data = {
+                "repeats":"norepeat",
+                "set_num":"1",
+                "rep_num":f"{rep_num}",
+                "min_num":"1",
+                "max_num":f"{max_num}",
+                "action":"dice_action",
+                "dice_nonce_field":"ca3333e237",
+                "_wp_http_referer":"/live-numbers/dice-throw/"
+            }
+            url = "https://qrng.anu.edu.au/wp-admin/admin-ajax.php"
+            response = requests.post(url, data=form_data)
+            # response.text example "{\"type\":\"success\",\"output\":[[6837,463,2692,6724,3871,2540]]}"
+            numbers = re.findall(r"\[\[(.*?)\]\]", response.text)[0]
+            numbers = numbers.split(",")
+            for i in range(len(numbers)):
+                numbers[i] = int(numbers[i])
+            random_list = numbers
         except:
-        	print2log("WARNING: QRNG site isn't responding. Probably Australia is on fire again :( Fallback to pseudo-random...")
-        	quantum = False
+            print2log("WARNING: QRNG site isn't responding. Probably Australia is on fire again :( Fallback to pseudo-random...")
+            quantum = False
 
     if not quantum:
-        for i in range(num_per_set):
+        for i in range(rep_num):
             random_list.append(random.randrange(max_num))
             
     return random_list
@@ -510,7 +521,7 @@ def download_albums(user_links="https://fatherjohnmisty.bandcamp.com/album/anthe
 def generate_menu():
     on = "☑"
     off = "☐"
-    key_quantum = f'{on} Quantum Random::-MENU_QUANTUM-' if toggle_quantum else f'{off} Quantum::-MENU_QUANTUM-'
+    key_quantum = f'{on} Quantum::-MENU_QUANTUM-' if toggle_quantum else f'{off} Quantum::-MENU_QUANTUM-'
     key_scrobble = f'{on} Scrobble::-MENU_SCROBBLE-' if toggle_scrobble else f'{off} Scrobble::-MENU_SCROBBLE-'
     key_autoplay = f'{on} Autoplay::-MENU_AUTOPLAY-' if toggle_autoplay else f'{off} Autoplay::-MENU_AUTOPLAY-'
     temp_list = [
@@ -771,19 +782,19 @@ def main():
                         print2log("There are no LASTFM credentials on config.ini")
 
         if music_artist != "":
-        	if mixer_is_paused:
-        		pass
-        	else:
-	            played_time = time.time() - song_started_at
-	            if played_time > music_duration:
-	                if toggle_autoplay:
-	                    next_random_track(values['-TAG-'])
-	            elif played_time > (music_duration*0.75):
-	                if toggle_scrobble and not already_scrobbled and music_duration != 0:
-	                    
-	                    already_scrobbled = True
-	                    print2log(f"SCROBBLING: {music_title} by {music_artist}")                 
-	                    scrobble_track(music_artist, music_title)
+            if mixer_is_paused:
+                pass
+            else:
+                played_time = time.time() - song_started_at
+                if played_time > music_duration:
+                    if toggle_autoplay:
+                        next_random_track(values['-TAG-'])
+                elif played_time > (music_duration*0.75):
+                    if toggle_scrobble and not already_scrobbled and music_duration != 0:
+                        
+                        already_scrobbled = True
+                        print2log(f"SCROBBLING: {music_title} by {music_artist}")                 
+                        scrobble_track(music_artist, music_title)
 
 if __name__ == "__main__":
     try:
