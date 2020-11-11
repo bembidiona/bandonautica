@@ -1,3 +1,6 @@
+Estaria bueno que no se cierre al cuerno cuando te quedas sin inet 
+    NetworkError: [Errno 11001] getaddrinfo failed
+
 BUGS:
     - hay un crash raro al cerrar el .exe despues de usarlo un buen rato
     - exploto con https://noospherenetwork.bandcamp.com/
