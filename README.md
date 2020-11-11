@@ -8,7 +8,7 @@ It also comes with a handy album downloader, auto tagging and scrobbling feature
 ![](https://raw.githubusercontent.com/bembidiona/bandonautica/master/src/screenshot.png)
 
 ## HOW TO RUN
-* For Windows 10 just download the [zip file](https://github.com/bembidiona/bandonautica/releases/download/v1.0.0/bandonautica.zip "Download Bandonautica for Windows") from the Releases page, extract, and run bandonautica.exe
+* For Windows 10 just download the [zip file](https://github.com/bembidiona/bandonautica/releases/download/v1.1/bandonautica.zip "Download Bandonautica for Windows") from the Releases page, extract, and run bandonautica.exe
 * Or build from sourse using Pyinstaller and runing build.bat
 * In other OS you can run it directly from the script bandonautica.py. check the external libraries required in requirements.txt
 
