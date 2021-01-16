@@ -1,12 +1,4 @@
-- updated bandcamp scrapper
-- updated ANU scrapper
-- updated chromedriver to v87
-
-
-led
-
 BUGS:
-    - build faild at https://weird1ofaugust.bandcamp.com/album/the-unholy-heaven
     - hay un crash raro al cerrar el .exe despues de usarlo un buen rato
     - exploto con https://noospherenetwork.bandcamp.com/
         albumart = soup.findAll('div', attrs={'id': 'tralbumArt'})[0]

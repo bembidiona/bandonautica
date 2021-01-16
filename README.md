@@ -8,7 +8,7 @@ It also comes with a handy album downloader, auto tagging and scrobbling feature
 ![](https://raw.githubusercontent.com/bembidiona/bandonautica/master/src/screenshot.png)
 
 ## HOW TO RUN
-* For Windows 10 just download the [zip file](https://github.com/bembidiona/bandonautica/releases/download/v1.1/bandonautica.zip "Download Bandonautica for Windows") from the Releases page, extract, and run bandonautica.exe
+* For Windows 10 just download the [zip file](https://github.com/bembidiona/bandonautica/releases/download/v1.2/bandonautica_v1.2.zip "Download Bandonautica for Windows") from the Releases page, extract, and run bandonautica.exe
 * Or build from sourse using Pyinstaller and runing build.bat
 * In other OS you can run it directly from the script bandonautica.py. check the external libraries required in requirements.txt
 
@@ -64,3 +64,4 @@ Bandonautica ship with chromedriver version 84. If you encounter problems using 
 * The first time searching with a specified tag can take some time. But after that is way faster that randonauting in the complete bandcamp site
 * Waiting the sites respond the requests can take some time, making the GUI unresponsive. Try to don't fiddle with the GUI when a search or downloads is in progress.
 * Crashes are expected. Check the log.txt file for a list of the tracks listened and hints of what can be gone wrong.
+* In 2021 ANU changed their site. A new key is generated every something days? This needs to be investigated, but for now add your key by hand in the config file in the ANU_KEY slot. (Check your key by sending a request from this [page](https://qrng.anu.edu.au/dice-throw/), go to dev tools with `F12`, and look the string in the requests tab in `dice_nonce_field`. Here is an [Example image](https://raw.githubusercontent.com/bembidiona/bandonautica/master/src/form.png) using Firefox)
