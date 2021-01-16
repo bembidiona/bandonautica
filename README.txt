@@ -58,8 +58,9 @@ SCROBBLE:
 ---------------------------------------------
 		 KNOW ISSUES AND OTHER NOTES
 ---------------------------------------------
+* In 2021 ANU changed their site. A new key is generated every something days? This needs to be investigated, but for now add your key by hand in the ini file in the ANU_KEY var. (Check your key by sending a request from this page "https://qrng.anu.edu.au/dice-throw/", go to dev tools, and look the string in the requests tab in "dice_nonce_field". Example using Firefox: https://raw.githubusercontent.com/bembidiona/bandonautica/master/src/form.png)
 * For filtering the random by a tag, it is needed having Chrome installed.
-Bandonautica ship with chromedriver version 84. If you encounter problems using this mode, download the correct version for your Chrome installation from here https://chromedriver.chromium.org/downloads, and add it to the path in the config.ini.
+Bandonautica ship with chromedriver version 87 (at the time of writing this). If you encounter problems using this mode, download the correct version for your Chrome installation from here https://chromedriver.chromium.org/downloads, and add it to the path in the config.ini.
 * The first time searching with a specified tag can take some time. But after that is way faster that randonauting in the complete bandcamp site
 * Waiting the sites to respond requests can take some time, making the GUI unresponsive. Try to don't fiddle with the GUI when a search or downloads is in progress.
 * Crashes are expected. Check the log.txt file for a list of the tracks listened and hints of what can be gone wrong.

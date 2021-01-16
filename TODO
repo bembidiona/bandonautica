@@ -1,7 +1,12 @@
-Estaria bueno que no se cierre al cuerno cuando te quedas sin inet 
-    NetworkError: [Errno 11001] getaddrinfo failed
+- updated bandcamp scrapper
+- updated ANU scrapper
+- updated chromedriver to v87
+
+
+led
 
 BUGS:
+    - build faild at https://weird1ofaugust.bandcamp.com/album/the-unholy-heaven
     - hay un crash raro al cerrar el .exe despues de usarlo un buen rato
     - exploto con https://noospherenetwork.bandcamp.com/
         albumart = soup.findAll('div', attrs={'id': 'tralbumArt'})[0]
@@ -13,6 +18,10 @@ BUGS:
         - salvaguardar el caso que si el artistpage solo tiene un track en su main page, no deberia saltar error
     - algun check mas copado para cuando te quedas sin inet?
 TODO:
+    - estaria bueno que el chromedriver busque el anu_key solo la primera vez
+    - Estaria bueno que no se cierre al cuerno cuando te quedas sin inet 
+        NetworkError: [Errno 11001] getaddrinfo fai
+    - para encontrar track info ahora mando a cagar el soup, y directamente lo encuentro con un regex. De momento anda, pero da volver a soup?
     - updater el screenshot que se muestra en github con el downloader
     - estaria piola poder empaquetar el exe sin tanta cosa suelta... pero habia problema
         - toca probar pyinstaller con python37

@@ -53,10 +53,14 @@ def update_bar(progress):
     window.refresh()  # hack para esquivar el 'Not Responding' de la GUI
 
 def generate_random_numbers(quantum=False):
+    global ANU_KEY
+
     rep_num = 4 #the old 'numbers per set'
     max_num = 9999
     random_list = []
-    if quantum:
+    quantum_fail = False
+
+    if quantum and ANU_KEY != "":
         print2log("retrieving random quantum numbers...") 
         try:
             form_data = {
@@ -66,7 +70,7 @@ def generate_random_numbers(quantum=False):
                 "min_num":"1",
                 "max_num":f"{max_num}",
                 "action":"dice_action",
-                "dice_nonce_field":"ca3333e237",
+                "dice_nonce_field":f"{ANU_KEY}", #v1.02: this new number is randomlly generated ?
                 "_wp_http_referer":"/live-numbers/dice-throw/"
             }
             url = "https://qrng.anu.edu.au/wp-admin/admin-ajax.php"
@@ -78,10 +82,15 @@ def generate_random_numbers(quantum=False):
                 numbers[i] = int(numbers[i])
             random_list = numbers
         except:
-            print2log("WARNING: QRNG site isn't responding. Probably Australia is on fire again :( Fallback to pseudo-random...")
+            print2log("WARNING: QRNG site isn't responding. Probably Australia is on fire again :(")
             quantum = False
+            quantum_fail = True
+    else:
+        quantum_fail = True
 
-    if not quantum:
+
+    if quantum_fail:
+        print2log("Fallback to pseudo-random...")
         for i in range(rep_num):
             random_list.append(random.randrange(max_num))
             
@@ -228,14 +237,14 @@ def retrieve_random_song(user_tag=""):
                 pass
 
 
-                # grab html from driver
-            html = driver.page_source
+            # grab html from driver
+            html_page = driver.page_source
             # close driver's window and quit the driver
             driver.close()
             driver.quit()
             window.refresh()
             # grab links of all loaded albums
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = BeautifulSoup(html_page, 'html.parser')
             a_elements = soup.findAll("a", {"target": "_blank", "data-bind":"attr: {'href': tralbumUrl}, click: $parent.stat.bind(null, 'tralbum_click')"})
             links_to_music = []
             for a in a_elements:
@@ -277,6 +286,9 @@ def retrieve_random_song(user_tag=""):
 
     # go to release page
     page = requests.get(link_to_release)
+    # print("-----------------")
+    # print(link_to_release)
+    # print("-----------------")
     update_bar(7)
     soup = BeautifulSoup(page.content, 'html.parser')
     # grab artist name and album name
@@ -290,6 +302,8 @@ def retrieve_random_song(user_tag=""):
     albumart = soup.findAll('div', attrs={'id': 'tralbumArt'})[0]
     albumart = albumart.findAll('img')[0]
     albumart_url = albumart.get("src")
+
+
     try:
         # ask for image
         im = requests.get(albumart_url).content
@@ -305,18 +319,23 @@ def retrieve_random_song(user_tag=""):
 
     # grab data for tracks (mp3 file and title are in javascript)
     scripts = soup.findAll('script', type="text/javascript")
-
     for script in scripts:
-        # lol, doble cast. better safe than sorry
-        script_as_string = str(script.string)
+        script_as_string = str(script)
+        script_as_string = script_as_string.replace("&quot;", '"') 
+        tracks_info = re.findall(r"\"trackinfo\":(.*?)\],", script_as_string)
 
-        tracks_info = re.findall(r"trackinfo:(.*?)\],", script_as_string)
         if len(tracks_info) > 0: # safe check. Some scripts don't have trackinfo.
-            tracks_info = tracks_info[0]
+
+            # tracks_info = tracks_info[0] # for some reason now this is returning the third element is the interesting one
+            tracks_info = str(tracks_info)            
 
             tracks_file = re.findall(r"\"file\":(.*?),", tracks_info)
             tracks_title = re.findall(r"\"title\":\"(.*?)\",", tracks_info)
             tracks_duration = re.findall(r"\"duration\":(.*?),", tracks_info)
+
+            # tracks_file = re.findall(r"(&quot;|\")file(&quot;|\"):(.*?),", tracks_info)
+            # tracks_title = re.findall(r"(&quot;|\")title(&quot;|\"):(&quot;|\")(.*?)(&quot;|\"),", tracks_info)
+            # tracks_duration = re.findall(r"(&quot;|\")duration(&quot;|\"):(.*?),", tracks_info)
 
 
             if not its_only_a_single_track and len(tracks_title) == 1:
@@ -350,12 +369,19 @@ def retrieve_random_song(user_tag=""):
 
 
             # choose one track at random and download
+            print("-------- CHOOSE TRACK -----------")
+            # print(f"selected_track: {selected_track}")
             random_track_number = list_of_random_numbers[3] % len(available_tracks_data)
             selected_track = available_tracks_data[random_track_number]
             track_number = selected_track[0]
             track_name = selected_track[1]
             track_duration = selected_track[2] # in seconds 
-            track_mp3 = selected_track[3] 
+            track_mp3 = selected_track[3]
+
+            print(track_mp3)
+
+            # print("------------------------------")
+            # print(f"selected_track: {selected_track}")
 
             # if is the release is a compilation, try to grab proper names
             if artist_name.lower() in ["various artists", "various", "v/a", "v.a.", "va"]:
@@ -466,14 +492,16 @@ def download_albums(user_links="https://fatherjohnmisty.bandcamp.com/album/anthe
             im = im.convert('RGB')
             im.save(os.path.join(ALBUM_PATH, "cover.jpg"))
 
+
         # grab data for tracks (mp3 file and title are in javascript)
         scripts = soup.findAll('script', type="text/javascript")
-
         for script in scripts:
             # lol, doble cast. better safe than sorry
-            script_as_string = str(script.string)
+            script_as_string = str(script)
+            script_as_string = script_as_string.replace("&quot;", '"') 
+            tracks_info = re.findall(r"\"trackinfo\":(.*?)\],", script_as_string)
 
-            tracks_info = re.findall(r"trackinfo:(.*?)\],", script_as_string)
+
             if len(tracks_info) > 0:
                 tracks_info = tracks_info[0]  # grab the first. TODO: why not to use find() then?
 
@@ -604,6 +632,7 @@ WINDOW_POSITION = [100, 100]
 SCROLL_TIME = 30
 PATH_DOWNLOADS = os.getcwd()
 PATH_CHROMEDRIVE = os.getcwd()
+ANU_KEY = ""
 
 # check if a config.ini exist and grab preferences from there, if not create one
 if os.path.isfile('config.ini'):
@@ -637,6 +666,8 @@ if os.path.isfile('config.ini'):
                 PATH_DOWNLOADS = value
             elif key == "PATH_CHROMEDRIVE":
                 PATH_CHROMEDRIVE = value
+            elif key == "ANU_KEY":
+                ANU_KEY = value
 else:
     defaul_config = """ENABLE_SCROBBLE=0
 LASTFM_USERNAME=your_lastfm_username
@@ -645,7 +676,8 @@ SCROLL_TIME=10
 ENABLE_AUTOPLAY=1
 ENABLE_QUANTUM=1
 PATH_DOWNLOADS=
-PATH_CHROMEDRIVE="""
+PATH_CHROMEDRIVE=
+ANU_KEY="""
     with open("config.ini", 'w', encoding='utf-8') as config:
         config.write(defaul_config)  
 # -----------------
@@ -782,7 +814,7 @@ def main():
                     os.system("README.txt")
                 elif menu_entry_key == '-MENU_ABOUT-':
                     # button_type=5 removes the horrendous OK button
-                    sg.Popup('Bandonautica v1.01\nby bembi & lemu',button_type=5)
+                    sg.Popup('Bandonautica v1.02\nby bembi & lemu',button_type=5)
                 elif menu_entry_key == '-MENU_QUANTUM-':
                     toggle_quantum = not toggle_quantum
                     temp_menu = generate_menu()
@@ -816,6 +848,7 @@ def main():
                         scrobble_track(music_artist, music_title)
 
 if __name__ == "__main__":
+    # main()
     try:
         with open("log.txt", "w", encoding='utf-8') as logfile:
             logfile.write("")
